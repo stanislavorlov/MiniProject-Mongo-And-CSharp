@@ -255,7 +255,9 @@ namespace MongoDbWeb.Controllers
             var database = client.GetDatabase(ConnectionString.DatabaseName);
             var collection = database.GetCollection<BsonDocument>(ConnectionString.CollectionName);
 
-            collection.DeleteOne(bookId);
+            var filter = new BsonDocument("_id", ObjectId.Parse(bookId));
+
+            collection.DeleteOne(filter);
 
             return Ok();
         }
