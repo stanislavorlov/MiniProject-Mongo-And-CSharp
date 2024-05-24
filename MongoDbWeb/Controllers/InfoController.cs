@@ -187,34 +187,97 @@ namespace MongoDbWeb.Controllers
             return CreatedAtAction(nameof(InsertOne), new { id = book.Id }, book);
         }
 
-        //[HttpPost("insertMany")]
-        //public async Task<IActionResult> InsertMany([FromBody]IEnumerable<Book> books)
-        //{
+        [HttpPost("insertMany")]
+        public async Task<IActionResult> InsertMany([FromBody] IEnumerable<Book> books)
+        {
+            var client = new MongoClient(ConnectionString.MongoConnectionString);
+            var database = client.GetDatabase(ConnectionString.DatabaseName);
+            var collection = database.GetCollection<BsonDocument>(ConnectionString.CollectionName);
 
-        //}
+            List<BsonDocument> documents = [];
+            foreach (var book in books)
+            {
+                documents.Add(new BsonDocument
+                {
+                    { "Name", book.BookName },
+                    { "Price", book.Price },
+                    { "Category", book.Category },
+                    { "Author", book.Author },
+                    { "PublicationDate", book.PublicationDate },
+                });
+            }
 
-        //[HttpPut]
-        //public async Task<IActionResult> UpdateOne(string bookId, [FromBody] Book book)
-        //{
+            await collection.InsertManyAsync(documents);
 
-        //}
+            return CreatedAtAction(nameof(InsertMany), books);
+        }
 
-        //[HttpPut("updateMany")]
-        //public async Task<IActionResult> UpdateMany([FromBody] IEnumerable<Book> books)
-        //{
+        [HttpPut]
+        public async Task<IActionResult> UpdateOne(string name, [FromBody] Book book)
+        {
+            var client = new MongoClient(ConnectionString.MongoConnectionString);
+            var database = client.GetDatabase(ConnectionString.DatabaseName);
+            var collection = database.GetCollection<BsonDocument>(ConnectionString.CollectionName);
 
-        //}
+            var filter = new BsonDocument("Name", name);
 
-        //[HttpDelete]
-        //public async Task<IActionResult> DeleteOne(string bookId)
-        //{
+            BsonDocument new_doc = new BsonDocument
+            {
+                { "Price", book.Price },
+                { "Category", book.Category },
+                { "Author", book.Author },
+                { "PublicationDate", book.PublicationDate },
+                { "BookName", book.BookName },
+            };
 
-        //}
+            collection.ReplaceOne(filter, new_doc);
 
-        //[HttpDelete("deleteMany")]
-        //public async Task<IActionResult> DeleteMany(string author)
-        //{
+            return Ok();
+        }
 
-        //}
+        [HttpPut("updateMany")]
+        public async Task<IActionResult> UpdateMany([FromBody] UpdateManyParameter parameter)
+        {
+            var client = new MongoClient(ConnectionString.MongoConnectionString);
+            var database = client.GetDatabase(ConnectionString.DatabaseName);
+            var collection = database.GetCollection<BsonDocument>(ConnectionString.CollectionName);
+
+            collection.UpdateMany(new BsonDocument("Category", parameter.Category),
+                new BsonDocument("$inc", new BsonDocument("Price", parameter.Price)));
+
+            return Ok();
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> DeleteOne(string bookId)
+        {
+            var client = new MongoClient(ConnectionString.MongoConnectionString);
+            var database = client.GetDatabase(ConnectionString.DatabaseName);
+            var collection = database.GetCollection<BsonDocument>(ConnectionString.CollectionName);
+
+            collection.DeleteOne(bookId);
+
+            return Ok();
+        }
+
+        [HttpDelete("deleteMany")]
+        public async Task<IActionResult> DeleteMany(string author)
+        {
+            var client = new MongoClient(ConnectionString.MongoConnectionString);
+            var database = client.GetDatabase(ConnectionString.DatabaseName);
+            var collection = database.GetCollection<BsonDocument>(ConnectionString.CollectionName);
+
+            var filter = new BsonDocument("Author", author);
+
+            collection.DeleteMany(filter);
+
+            return Ok();
+        }
+    }
+
+    public class UpdateManyParameter
+    {
+        public decimal Price { get; set; }
+        public string Category { get; set; }
     }
 }
